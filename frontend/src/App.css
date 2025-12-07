@@ -1,0 +1,313 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #F1F2F6;
+  --blue1: #8FC7E4;
+  --blue2: #84D3FA;
+  --blue3: #56B7E4;
+  --yellow: #FEB931;
+  --pink: #FF69B4;
+  --green: #90EE90;
+  --darkGreen: #4CAF50;
+  --white: #FFFFFF;
+  --gray: #CCCCCC;
+  --darkGray: #333333;
+  --darkBlue: #2C3E50;
+  --shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Fredoka', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--darkGray);
+}
+
+/* --- LOGIN PAGE --- */
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--blue3);
+}
+
+.login-card {
+  background: var(--blue2);
+  padding: 40px;
+  border-radius: 20px;
+  width: 400px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.login-title {
+  font-size: 32px;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0px #e67e22; /* Cartoon pop effect */
+  margin-bottom: 10px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.input-group label {
+  color: white;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--darkBlue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: 0.3s;
+}
+
+.login-btn:hover { background-color: #1a252f; }
+
+.google-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--white);
+  color: var(--darkGray);
+  border: none;
+  border-radius: 20px; /* Pill shape */
+  font-weight: bold;
+  margin-top: 15px;
+  cursor: not-allowed;
+  opacity: 0.8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --- MAIN LAYOUT (Sidebar + Content) --- */
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background-color: var(--blue3);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.logo-area {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.user-profile-widget {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.avatar-circle {
+  width: 60px;
+  height: 60px;
+  background-color: var(--gray);
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.nav-item:hover, .nav-item.active {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.nav-icon { margin-right: 10px; font-size: 1.2rem; }
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 28px;
+  color: var(--darkGray);
+  font-weight: bold;
+}
+
+/* Tables */
+.custom-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px; /* Gap between rows */
+}
+
+.custom-table thead th {
+  text-align: left;
+  padding: 15px;
+  color: var(--darkGray);
+  font-weight: 600;
+  border-bottom: 2px solid var(--gray);
+}
+
+.custom-table tbody tr {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 10px; /* Only works if display is block/flex usually, but simplified here */
+}
+
+.custom-table td {
+  padding: 15px;
+  background-color: white; /* Needed for spacing effect */
+}
+
+.custom-table td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+.custom-table td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+/* Buttons */
+.action-btn {
+  background-color: var(--yellow);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--darkBlue);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-box {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  width: 300px;
+}
+
+/* Line 244 */
+@font-face {
+  font-display: swap; /* Correct indentation (using standard space/tab) */
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/fredoka-v17-latin-regular.woff2') format('woff2'); 
+}
+
+/* fredoka-700 - latin */
+@font-face {
+  font-display: swap; 
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/fredoka-v17-latin-700.woff2') format('woff2'); 
+}
+
+/* client/src/App.css */
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+
+.status {
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+.online { background-color: #d4edda; color: #155724; }
+.offline { background-color: #f8d7da; color: #721c24; }
+
+.main-card {
+  background: #f8f9fa;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.data-box {
+  border: 4px solid;
+  padding: 20px;
+  border-radius: 10px;
+  background: white;
+  width: 100%;
+}
+
+.stat { font-size: 1.2rem; margin: 5px 0; color: #555; }
+.stat span { font-weight: bold; color: #000; }
+
+.history-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.history-section li {
+  background: white;
+  margin: 10px 0;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+}
