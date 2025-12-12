@@ -50,9 +50,10 @@ const Students = ({ setView, setCurrentLearner }) => {
                 {/* 5. These buttons now work because we accepted the props at the top */}
                 <button 
                   className="action-btn" 
-                  onClick={() => { setCurrentLearner(l); setView('session'); }}
+                  // CHANGE THIS: Go to dashboard, not session
+                  onClick={() => { setCurrentLearner(l); setView('student-dashboard'); }} 
                 >
-                  🚀 Launch Session
+                  Select
                 </button>
               </td>
             </tr>

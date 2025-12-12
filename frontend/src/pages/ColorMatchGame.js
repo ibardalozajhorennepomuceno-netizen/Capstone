@@ -3,41 +3,88 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
-// AUDIO
+// AUDIO FILES
 const SUCCESS_SOUND = new Audio('/success.mp3');
 const FAIL_SOUND = new Audio('/fail.mp3');
 const LEVEL_UP_SOUND = new Audio('/levelup.mp3');
 
 const ColorMatchGame = ({ learner, onBack }) => {
   // --- STATE ---
-  const [gameState, setGameState] = useState('IDLE'); // IDLE, PLAYING, FEEDBACK, LEVEL_COMPLETE, FINISHED, FAILED
+  const [gameState, setGameState] = useState('IDLE'); // IDLE, INSTRUCTIONS, PLAYING, FEEDBACK, LEVEL_COMPLETE, FINISHED, FAILED
   const [level, setLevel] = useState(1);
-  const [score, setScore] = useState(0);       // Total Session Score
-  const [levelScore, setLevelScore] = useState(0); // Score just for this level
-  const [round, setRound] = useState(1);       // Current round (1/5)
+  const [score, setScore] = useState(0);       
+  const [levelScore, setLevelScore] = useState(0); 
+  const [round, setRound] = useState(1);       
   
   const [targetColor, setTargetColor] = useState(null);
-  const [message, setMessage] = useState("Press Start to Begin");
+  const [message, setMessage] = useState("");
   
-  // Timers & Stats
-  const [roundTimeLeft, setRoundTimeLeft] = useState(null);
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [roundStartTime, setRoundStartTime] = useState(0); // To calculate reaction speed
+  // --- TIMERS ---
+  const [totalSeconds, setTotalSeconds] = useState(0); // Total Session Time
+  const [levelTimeLeft, setLevelTimeLeft] = useState(300); // 5 Mins per Level
+  const [roundTimeLeft, setRoundTimeLeft] = useState(null); 
+  const [roundStartTime, setRoundStartTime] = useState(0); 
+
+  // STATS
+  const [reactionTimes, setReactionTimes] = useState([]); 
+  const [mistakes, setMistakes] = useState(0);
   const [finalStats, setFinalStats] = useState(null);
 
-  // IoT
+  // REFS
   const socketRef = useRef(null);
+  const totalTimerRef = useRef(null);
+  const levelTimerRef = useRef(null);
   const roundTimerRef = useRef(null);
 
   // --- CONFIGURATION ---
   const COLORS = ['RED', 'BLUE', 'GREEN'];
+  const LEVEL_TIME_LIMIT = 300; 
   
-  // LOGIC: Level 1 is the "Exception" (Easier, no timer bonus)
   const LEVEL_CONFIG = {
-    1: { name: 'Association', rounds: 5, passScore: 50, timeLimit: null, minForce: 10, desc: "Take your time. Match 5 colors." },
-    2: { name: 'Pacing',      rounds: 5, passScore: 60, timeLimit: 10,   minForce: 10, desc: "You have 10 seconds! Be quick for high scores." },
-    3: { name: 'Speed',       rounds: 5, passScore: 60, timeLimit: 5,    minForce: 10, desc: "Fast! 5 seconds only." },
-    4: { name: 'Strength',    rounds: 5, passScore: 60, timeLimit: 5,    minForce: 80, desc: "Press HARD within 5 seconds!" }
+    1: { 
+        name: 'Association', 
+        rounds: 5, 
+        passScore: 80, 
+        roundLimit: null, 
+        minForce: 10, 
+        desc: "Match the color shown on screen.", 
+        goal: "Get at least 4 correct." 
+    },
+    2: { 
+        name: 'Pacing',      
+        rounds: 5, 
+        passScore: 50, 
+        roundLimit: 10,   
+        minForce: 10, 
+        desc: "You have 10 seconds per color.", 
+        goal: "Accuracy is key. Don't rush." 
+    },
+    3: { 
+        name: 'Speed',       
+        rounds: 5, 
+        passScore: 75, 
+        roundLimit: 5,    
+        minForce: 10, 
+        desc: "Fast! React within 2 seconds.", 
+        goal: "Speed bonuses are required to pass." 
+    },
+    4: { 
+        name: 'Strength',    
+        rounds: 5, 
+        passScore: 50, 
+        roundLimit: 5,    
+        minForce: 80, 
+        desc: "Press the pad HARD!", 
+        goal: "Focus on power, not just speed." 
+    }
+  };
+
+  // --- HELPER: FORMAT TIME ---
+  const formatTime = (secs) => {
+    if (secs < 0) return "00:00";
+    const minutes = Math.floor(secs / 60);
+    const seconds = secs % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // --- 1. SETUP IOT ---
@@ -46,79 +93,133 @@ const ColorMatchGame = ({ learner, onBack }) => {
     socketRef.current.on('fsr_update', (data) => handleInput(data));
     return () => {
       socketRef.current.disconnect();
-      clearInterval(roundTimerRef.current);
+      stopAllTimers();
     };
   }, [gameState, targetColor, level]);
 
-  // --- 2. GAME FLOW ---
+  // --- 2. TIMER LOGIC ---
+  const stopAllTimers = () => {
+    clearInterval(totalTimerRef.current);
+    clearInterval(levelTimerRef.current);
+    clearInterval(roundTimerRef.current);
+  };
 
-  const startGame = () => {
+  // Total Timer (Runs during PLAYING, FEEDBACK)
+  useEffect(() => {
+    const activeStates = ['PLAYING', 'FEEDBACK', 'INSTRUCTIONS']; // Keep total time running or pause during instructions? usually pause.
+    // Let's pause total timer during instructions so they don't get penalized for reading.
+    if ((gameState === 'PLAYING' || gameState === 'FEEDBACK') && !totalTimerRef.current) {
+        totalTimerRef.current = setInterval(() => {
+            setTotalSeconds(prev => prev + 1);
+        }, 1000);
+    } else if (gameState !== 'PLAYING' && gameState !== 'FEEDBACK') {
+        clearInterval(totalTimerRef.current);
+        totalTimerRef.current = null;
+    }
+  }, [gameState]);
+
+  // Level Countdown
+  useEffect(() => {
+    if (gameState === 'PLAYING') {
+        levelTimerRef.current = setInterval(() => {
+            setLevelTimeLeft(prev => {
+                if (prev <= 1) {
+                    handleLevelTimeout();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    } else {
+        clearInterval(levelTimerRef.current);
+    }
+    return () => clearInterval(levelTimerRef.current);
+  }, [gameState, level]);
+
+  // Round Countdown
+  useEffect(() => {
+    if (gameState === 'PLAYING' && roundTimeLeft !== null) {
+        roundTimerRef.current = setInterval(() => {
+            setRoundTimeLeft(prev => {
+                if (prev <= 1) {
+                    handleRoundTimeout();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }
+    return () => clearInterval(roundTimerRef.current);
+  }, [gameState, roundTimeLeft]);
+
+
+  // --- 3. TIMEOUT HANDLERS ---
+  const handleLevelTimeout = () => {
+      stopAllTimers();
+      FAIL_SOUND.play();
+      handleFinishGame(false, "Level Time Expired! ⏰");
+  };
+
+  const handleRoundTimeout = () => {
+      clearInterval(roundTimerRef.current);
+      FAIL_SOUND.play();
+      setMessage("Too Slow! ⏳ (0 Pts)");
+      setReactionTimes(prev => [...prev, 10]); 
+      setMistakes(prev => prev + 1);
+      finishRound(0); 
+  };
+
+  // --- 4. GAME FLOW ---
+  const initGame = () => {
     setScore(0);
     setLevelScore(0);
     setLevel(1);
     setRound(1);
-    setSessionStartTime(Date.now());
-    setGameState('PLAYING');
-    nextRound(1, 1);
+    setTotalSeconds(0);
+    setReactionTimes([]);
+    setMistakes(0);
+    
+    // Go to instructions first
+    setGameState('INSTRUCTIONS');
+  };
+
+  const startLevelAction = () => {
+      setGameState('PLAYING');
+      setLevelTimeLeft(LEVEL_TIME_LIMIT);
+      nextRound(level, 1);
   };
 
   const nextRound = (currentLevel, currentRound) => {
     const nextColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     setTargetColor(nextColor);
-    setRoundStartTime(Date.now()); // Mark start time for speed calculation
+    setRoundStartTime(Date.now()); 
     
     const config = LEVEL_CONFIG[currentLevel];
     setMessage(currentLevel === 4 ? `Press ${nextColor} HARD!` : `Press ${nextColor}`);
 
-    if (config.timeLimit) {
-      startRoundTimer(config.timeLimit);
+    if (config.roundLimit) {
+      setRoundTimeLeft(config.roundLimit);
     } else {
-        setRoundTimeLeft(null); // Clear timer visual for Level 1
+      setRoundTimeLeft(null);
     }
   };
 
-  const startRoundTimer = (seconds) => {
-    clearInterval(roundTimerRef.current);
-    setRoundTimeLeft(seconds);
-    
-    roundTimerRef.current = setInterval(() => {
-      setRoundTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(roundTimerRef.current);
-          handleTimeOut();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleTimeOut = () => {
-    FAIL_SOUND.play();
-    setMessage("Time's Up! ⏳ (0 Points)");
-    finishRound(0); // 0 Points for timeout
-  };
-
-  // --- 3. INPUT LOGIC ---
+  // --- 5. INPUT LOGIC ---
   const handleInput = (data) => {
     if (gameState !== 'PLAYING' || !targetColor) return;
 
-    // Normalize Data (Handle 'fsr' or 'pad')
     const inputPad = (data.pad || data.fsr || "").toUpperCase();
     const inputForce = data.force || data.pressure || 0;
     const config = LEVEL_CONFIG[level];
 
-    // Logic: Correct Pad?
     if (inputPad === targetColor) {
-      // Logic: Enough Force?
       if (inputForce >= config.minForce) {
         handleSuccess();
       } else {
         setMessage(`Push Harder! (Force: ${inputForce}%)`);
       }
     } else {
-      // Wrong Pad - Optional: Just feedback, don't fail round immediately
-      setMessage(`Wrong! That was ${inputPad}. Find ${targetColor}`);
+      setMessage(`Wrong! That was ${inputPad}`);
     }
   };
 
@@ -126,25 +227,15 @@ const ColorMatchGame = ({ learner, onBack }) => {
     clearInterval(roundTimerRef.current);
     SUCCESS_SOUND.play();
     
-    // --- SCORING LOGIC ---
-    let points = 0;
+    const reactionTimeSec = (Date.now() - roundStartTime) / 1000;
+    setReactionTimes(prev => [...prev, reactionTimeSec]);
 
-    if (level === 1) {
-        // Level 1 EXCEPTION: Fixed 20 points per correct answer (No speed bonus)
-        points = 20; 
-    } else {
-        // Level 2+: Speed Scoring
-        // Base: 10 points. Bonus: Up to 10 extra based on speed.
-        const reactionTimeSec = (Date.now() - roundStartTime) / 1000;
-        points = 10;
-        
-        if (LEVEL_CONFIG[level].timeLimit) {
-             const bonus = Math.max(0, 10 - Math.floor(reactionTimeSec * 2));
-             points += bonus;
-        }
+    let points = 20; 
+    if (level > 1 && LEVEL_CONFIG[level].roundLimit) {
+         points = 10 + Math.max(0, 10 - Math.floor(reactionTimeSec * 2));
     }
 
-    setMessage(`Great! +${points} Pts`);
+    setMessage(`Great! +${points} Pts (${reactionTimeSec.toFixed(1)}s)`);
     finishRound(points);
   };
 
@@ -153,15 +244,11 @@ const ColorMatchGame = ({ learner, onBack }) => {
     setScore(prev => prev + pointsEarned);
     setLevelScore(prev => prev + pointsEarned);
 
-    // Wait 1.5s then decide: Next Round OR Level Complete?
     setTimeout(() => {
       const config = LEVEL_CONFIG[level];
-      
       if (round >= config.rounds) {
-         // LEVEL FINISHED -> CHECK PASS/FAIL
-         checkLevelPass(levelScore + pointsEarned); // Pass updated score
+         checkLevelPass(levelScore + pointsEarned); 
       } else {
-         // NEXT ROUND
          setRound(prev => prev + 1);
          setGameState('PLAYING');
          nextRound(level, round + 1);
@@ -171,38 +258,44 @@ const ColorMatchGame = ({ learner, onBack }) => {
 
   const checkLevelPass = (finalLevelScore) => {
       const config = LEVEL_CONFIG[level];
-      
       if (finalLevelScore >= config.passScore) {
-          // PASSED
           setGameState('LEVEL_COMPLETE');
           LEVEL_UP_SOUND.play().catch(() => {});
       } else {
-          // FAILED -> END SESSION
           setGameState('FAILED');
       }
   };
 
   const proceedToNextLevel = () => {
     if (level >= 4) {
-        handleFinishGame(true); // Win
+        handleFinishGame(true, "All Levels Complete!"); 
     } else {
         setLevel(prev => prev + 1);
-        setLevelScore(0); // Reset score tracker for new level
+        setLevelScore(0); 
         setRound(1);
-        setGameState('PLAYING');
-        nextRound(level + 1, 1);
+        setGameState('INSTRUCTIONS'); // Show instructions for next level
     }
   };
 
-  // --- 4. END GAME & SAVE ---
-  const handleFinishGame = (completedAll = false) => {
-    const totalDurationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+  // --- 6. END GAME & SAVE ---
+  const handleFinishGame = (completedAll = false, reason = "") => {
+    stopAllTimers();
+    const durationString = formatTime(totalSeconds);
+
+    const avgReaction = reactionTimes.length > 0 
+        ? reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length 
+        : 0;
     
+    let engagement = "Medium";
+    if (avgReaction < 2.5 && mistakes < 3) engagement = "High";
+    else if (avgReaction > 5.0 || mistakes > 5) engagement = "Low";
+
     const sessionData = {
         learner_id: learner.id,
         activity_id: 1, 
         performance_score: score,
-        duration: totalDurationSeconds
+        duration: totalSeconds,
+        engagement_level: engagement
     };
 
     axios.post(`${API_BASE_URL}/log-session`, sessionData)
@@ -211,14 +304,15 @@ const ColorMatchGame = ({ learner, onBack }) => {
 
     setFinalStats({
         score: score,
-        time: totalDurationSeconds,
+        time: durationString,
         level: level,
-        completed: completedAll
+        engagement: engagement,
+        statusMsg: reason || (completedAll ? "Mission Accomplished! 🏆" : "Session Ended")
     });
     setGameState('FINISHED');
   };
 
-  // --- 5. RENDER UI ---
+  // --- 7. UI HELPERS ---
   const getCircleStyle = () => {
     if (gameState === 'FEEDBACK') return { background: 'gold', transform: 'scale(1.1)' };
     const map = { 'RED': '#FF5252', 'BLUE': '#448AFF', 'GREEN': '#69F0AE' };
@@ -228,64 +322,76 @@ const ColorMatchGame = ({ learner, onBack }) => {
     };
   };
 
-  // --- SCREENS ---
+  // ================= SCREENS =================
 
-  // A. RESULTS SCREEN (FINISHED)
-  if (gameState === 'FINISHED' && finalStats) {
+  // 1. INSTRUCTIONS SCREEN (New)
+  if (gameState === 'INSTRUCTIONS') {
+      const config = LEVEL_CONFIG[level];
       return (
-        <div className="main-content" style={{textAlign:'center', paddingTop:'50px'}}>
-            <h1 style={{fontSize:'3rem', color: finalStats.completed ? '#27ae60' : '#e67e22'}}>
-                {finalStats.completed ? "Mission Accomplished! 🏆" : "Session Ended"}
-            </h1>
-            <div style={{background:'white', padding:'40px', borderRadius:'20px', display:'inline-block', boxShadow:'0 10px 30px rgba(0,0,0,0.1)'}}>
-                <h2>Total Score: <span style={{color:'#F9BF15'}}>{finalStats.score}</span></h2>
-                <h3>Total Time: {finalStats.time}s</h3>
-                <h3>Reached Level: {finalStats.level}</h3>
-                <button className="action-btn" onClick={onBack} style={{marginTop:'30px', fontSize:'1.2rem', padding:'15px 40px'}}>
-                    Back to Dashboard
-                </button>
-            </div>
-        </div>
-      );
-  }
-
-  // B. FAILED SCREEN
-  if (gameState === 'FAILED') {
-      return (
-        <div className="main-content" style={{textAlign:'center', paddingTop:'50px'}}>
-             <div style={{background:'white', padding:'50px', borderRadius:'20px', display:'inline-block', border:'4px solid #E74C3C'}}>
-                <h1 style={{color:'#E74C3C'}}>Session Failed 🛑</h1>
-                <h3>You scored {levelScore} points on Level {level}.</h3>
-                <p>You needed {LEVEL_CONFIG[level].passScore} points to proceed.</p>
-                <p style={{color:'#666', fontStyle:'italic'}}>Keep practicing to get faster!</p>
-                
-                <button className="action-btn" onClick={() => handleFinishGame(false)} style={{marginTop:'20px', background:'#E74C3C'}}>
-                    Finish & Save Progress
+        <div className="main-content" style={{textAlign:'center', paddingTop:'80px'}}>
+             <div style={{background:'white', padding:'50px', borderRadius:'20px', display:'inline-block', border:'4px solid #3498DB', maxWidth:'600px'}}>
+                <h2 style={{color:'#3498DB'}}>LEVEL {level}: {config.name.toUpperCase()}</h2>
+                <div style={{textAlign:'left', margin:'30px 0', fontSize:'1.2rem', color:'#555'}}>
+                    <p><strong>ℹ️ Instructions:</strong> {config.desc}</p>
+                    <p><strong>🎯 Goal:</strong> {config.goal}</p>
+                    <p><strong>🏆 Passing Score:</strong> {config.passScore} Points</p>
+                </div>
+                <button className="action-btn" onClick={startLevelAction} style={{fontSize:'1.5rem', padding:'15px 40px', background:'#3498DB'}}>
+                    START LEVEL ➡
                 </button>
              </div>
         </div>
       );
   }
 
-  // C. LEVEL COMPLETE MODAL
+  // 2. RESULTS SCREEN
+  if (gameState === 'FINISHED' && finalStats) {
+      return (
+        <div className="main-content" style={{textAlign:'center', paddingTop:'50px'}}>
+            <h1 style={{fontSize:'2.5rem', color:'#2C3E50'}}>{finalStats.statusMsg}</h1>
+            <div style={{background:'white', padding:'40px', borderRadius:'20px', display:'inline-block', boxShadow:'0 10px 30px rgba(0,0,0,0.1)'}}>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'30px', marginBottom:'20px'}}>
+                    <div><h4 style={{color:'#999'}}>TOTAL TIME</h4><h2>{finalStats.time}</h2></div>
+                    <div><h4 style={{color:'#999'}}>FINAL SCORE</h4><h2 style={{color:'#F9BF15'}}>{finalStats.score}</h2></div>
+                    <div style={{gridColumn:'span 2'}}>
+                        <h4 style={{color:'#999'}}>ENGAGEMENT</h4>
+                        <h1 style={{color: finalStats.engagement === 'High' ? '#27ae60' : finalStats.engagement === 'Medium' ? '#f39c12' : '#c0392b'}}>
+                            {finalStats.engagement}
+                        </h1>
+                    </div>
+                </div>
+                <button className="action-btn" onClick={onBack} style={{width:'100%'}}>Back to Dashboard</button>
+            </div>
+        </div>
+      );
+  }
+
+  // 3. FAILED SCREEN
+  if (gameState === 'FAILED') {
+      return (
+        <div className="main-content" style={{textAlign:'center', paddingTop:'50px'}}>
+             <div style={{background:'white', padding:'50px', borderRadius:'20px', display:'inline-block', border:'4px solid #E74C3C'}}>
+                <h1 style={{color:'#E74C3C'}}>Session Failed 🛑</h1>
+                <p>You scored {levelScore} points. Needed {LEVEL_CONFIG[level].passScore}.</p>
+                <button className="action-btn" onClick={() => handleFinishGame(false)} style={{marginTop:'20px', background:'#E74C3C'}}>Finish & Save</button>
+             </div>
+        </div>
+      );
+  }
+
+  // 4. LEVEL COMPLETE
   if (gameState === 'LEVEL_COMPLETE') {
       return (
-        <div className="main-content" style={{textAlign:'center', paddingTop:'80px'}}>
+        <div className="main-content" style={{textAlign:'center', paddingTop:'100px'}}>
              <div style={{background:'white', padding:'50px', borderRadius:'20px', display:'inline-block', border:'4px solid #4CAF50'}}>
                 <h1 style={{color:'#4CAF50'}}>⭐ Level {level} Complete!</h1>
-                <h3>Score: {levelScore} / 100</h3>
-                <p>Great job! You passed the requirement.</p>
-                
+                <p>You scored {levelScore} points in this level.</p>
                 {level < 4 ? (
-                    <div style={{margin:'30px 0', padding:'20px', background:'#f9f9f9', borderRadius:'10px'}}>
-                        <h3>Next: Level {level + 1} ({LEVEL_CONFIG[level+1].name})</h3>
-                        <p style={{color:'#666'}}>{LEVEL_CONFIG[level+1].desc}</p>
-                        <button className="action-btn" onClick={proceedToNextLevel} style={{fontSize:'1.5rem', padding:'15px 40px'}}>
-                            Proceed to Level {level + 1} ➡
-                        </button>
-                    </div>
+                    <button className="action-btn" onClick={proceedToNextLevel} style={{fontSize:'1.5rem', padding:'15px 40px', marginTop:'20px'}}>
+                        Next Level ➡
+                    </button>
                 ) : (
-                    <button className="action-btn" onClick={() => handleFinishGame(true)} style={{fontSize:'1.5rem', padding:'15px 40px', background:'#F9BF15', color:'black'}}>
+                    <button className="action-btn" onClick={() => handleFinishGame(true)} style={{background:'#F9BF15', color:'black', marginTop:'20px'}}>
                         🏆 Finish Game
                     </button>
                 )}
@@ -294,61 +400,57 @@ const ColorMatchGame = ({ learner, onBack }) => {
       );
   }
 
-  // D. GAME SCREEN (With Test Controls on Left/Bottom)
+  // 5. GAMEPLAY & IDLE
   return (
     <div className="main-content" style={{textAlign: 'center', position: 'relative'}}>
       
-      {/* 1. TEST CONTROLS (Restored) */}
-      <div style={{
-          position: 'absolute', top: '100px', left: '20px', 
-          background: 'rgba(255,255,255,0.9)', padding: '15px', 
-          borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          zIndex: 100, textAlign: 'left', width: '150px'
-      }}>
-          <h4 style={{margin:'0 0 10px 0', fontSize:'12px', color:'#999'}}>TEST CONTROLS</h4>
-          <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
-             <button onClick={() => handleInput({pad: 'RED', force: 100})} style={{background:'#ffebee', color:'#d32f2f', border:'1px solid #d32f2f', padding:'5px', borderRadius:'5px', cursor:'pointer'}}>🔴 Sim Red</button>
-             <button onClick={() => handleInput({pad: 'BLUE', force: 100})} style={{background:'#e3f2fd', color:'#1976d2', border:'1px solid #1976d2', padding:'5px', borderRadius:'5px', cursor:'pointer'}}>🔵 Sim Blue</button>
-             <button onClick={() => handleInput({pad: 'GREEN', force: 100})} style={{background:'#e8f5e9', color:'#388e3c', border:'1px solid #388e3c', padding:'5px', borderRadius:'5px', cursor:'pointer'}}>🟢 Sim Green</button>
-          </div>
-      </div>
+      {/* TEST CONTROLS
+      <div style={{position: 'absolute', top: '100px', left: '20px', background: 'rgba(255,255,255,0.9)', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', zIndex: 100, textAlign: 'left'}}>
+          <h4 style={{margin:'0 0 10px 0', fontSize:'12px', color:'#999'}}>SIMULATOR</h4>
+          <button onClick={() => handleInput({pad: 'RED', force: 100})} style={{display:'block', marginBottom:'5px'}}>🔴 Red</button>
+          <button onClick={() => handleInput({pad: 'BLUE', force: 100})} style={{display:'block', marginBottom:'5px'}}>🔵 Blue</button>
+          <button onClick={() => handleInput({pad: 'GREEN', force: 100})} style={{display:'block'}}>🟢 Green</button>
+      </div> */}
 
-
-      {/* 2. HEADER */}
-      <div className="page-header" style={{display: 'flex', justifyContent: 'space-between', marginLeft: '180px'}}>
-         <div>
+      {/* HEADER */}
+      <div className="page-header" style={{display: 'flex', justifyContent: 'space-between'}}>
+         <div style={{textAlign:'left'}}>
             <h1 className="page-title">Color Match</h1>
-            <p style={{color: '#666', margin:0}}>Level {level}: {LEVEL_CONFIG[level]?.name}</p>
-            <p style={{fontSize:'12px', color:'#999'}}>Round {round} / 5</p>
+            <p style={{color: '#666', margin:0}}>Level {level} | Round {round}/5</p>
          </div>
          <div style={{textAlign: 'right'}}>
-           <h2 style={{margin:0}}>Score: {score}</h2>
+           <div style={{fontSize:'14px', color:'#999'}}>⏱ Total: {formatTime(totalSeconds)}</div>
+           {/* TARGET SCORE DISPLAY */}
+           <h2 style={{margin:0}}>
+             Score: {score} <span style={{fontSize:'16px', color:'#999'}}>/ Target: {LEVEL_CONFIG[level].passScore}</span>
+           </h2>
            {roundTimeLeft !== null && <h3 style={{color: roundTimeLeft < 3 ? '#E74C3C' : '#2C3E50'}}>⏳ {roundTimeLeft}s</h3>}
          </div>
       </div>
 
-      {/* 3. TARGET CIRCLE */}
-      <div style={{
-        width: '220px', height: '220px', borderRadius: '50%',
-        margin: '20px auto', transition: 'all 0.3s',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        ...getCircleStyle()
-      }}>
-        {gameState === 'IDLE' && (
-            <button className="action-btn" onClick={startGame} style={{fontSize:'1.5rem', padding:'20px'}}>START</button>
-        )}
-        {gameState === 'PLAYING' && (
-            <h1 style={{color:'white', fontSize:'3rem', textShadow:'0 2px 5px rgba(0,0,0,0.5)'}}>{targetColor}</h1>
-        )}
+      {/* TARGET AREA */}
+      <div style={{width: '250px', height: '250px', borderRadius: '50%', margin: '20px auto', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s', ...getCircleStyle()}}>
+        {gameState === 'IDLE' && <button className="action-btn" onClick={initGame} style={{fontSize:'1.5rem', padding:'20px'}}>START GAME</button>}
+        {gameState === 'PLAYING' && <h1 style={{color:'white', fontSize:'3rem', textShadow:'0 2px 5px rgba(0,0,0,0.5)'}}>{targetColor}</h1>}
       </div>
 
-      <h1 style={{minHeight:'40px', color:'#333'}}>{message}</h1>
+      {/* ROUND TIMER BAR */}
+      {gameState === 'PLAYING' && roundTimeLeft !== null && (
+          <div style={{width:'300px', height:'10px', background:'#eee', margin:'0 auto 20px auto', borderRadius:'5px', overflow:'hidden'}}>
+              <div style={{
+                  height:'100%', 
+                  background: roundTimeLeft < 3 ? '#E74C3C' : '#3498DB',
+                  width: `${(roundTimeLeft / LEVEL_CONFIG[level].roundLimit) * 100}%`,
+                  transition: 'width 1s linear'
+              }}></div>
+          </div>
+      )}
 
-      {/* Manual Exit */}
-      <button onClick={() => handleFinishGame(false)} style={{marginTop:'30px', background:'#ff6b6b', color:'white', border:'none', padding:'8px 15px', borderRadius:'5px', cursor:'pointer', fontSize:'12px'}}>
+      <h1>{message}</h1>
+      
+      <button onClick={() => handleFinishGame(false, "Session Cancelled")} style={{marginTop:'40px', background:'#ff6b6b', color:'white', border:'none', padding:'10px', borderRadius:'5px'}}>
         End Session Early
       </button>
-
     </div>
   );
 };

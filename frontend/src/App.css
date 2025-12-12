@@ -319,3 +319,22 @@ body {
   justify-content: space-between;
   text-align: left;
 }
+
+/* Normal State: Sidebar exists */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Game Mode: Sidebar is gone */
+.app-container.game-mode {
+  display: block; /* Or flex, but ensures full width */
+}
+
+/* Ensure the main content expands when sidebar is gone */
+.app-container.game-mode .main-content {
+  margin-left: 0 !important; /* Overrides any existing sidebar margin */
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 20px; /* Optional: adds a little breathing room */
+}

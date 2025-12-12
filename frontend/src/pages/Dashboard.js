@@ -50,8 +50,8 @@ const Dashboard = ({ user }) => {
                   <td>{l.gender}</td>
                   <td>
                     <span style={{
-                      backgroundColor: l.diagnosis && l.diagnosis.includes('Autism') ? '#e3f2fd' : '#fce4ec',
-                      color: l.diagnosis && l.diagnosis.includes('Autism') ? '#1976d2' : '#c2185b',
+                      backgroundColor: l.diagnosis && l.diagnosis.includes('ASD') ? '#e3f2fd' : '#fce4ec',
+                      color: l.diagnosis && l.diagnosis.includes('ASD') ? '#1976d2' : '#c2185b',
                       padding: '5px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold'
                     }}>
                       {l.diagnosis}

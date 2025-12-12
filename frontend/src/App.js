@@ -6,7 +6,9 @@ import Sidebar from './components/Sidebar';
 import Login from './pages/Login.js';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
-import Session from './pages/Session'; 
+import StudentDashboard from './pages/StudentDashboard'; // NEW
+import ActivitySelection from './pages/ActivitySelection'; // NEW
+// import Session from './pages/Session'; 
 import DvcManagement from './pages/DvcManagement';
 import ColorMatchGame from './pages/ColorMatchGame.js'; 
 
@@ -29,58 +31,72 @@ function App() {
   const [currentLearner, setCurrentLearner] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // 1. If not logged in, show Login Page
+  // 1. Detect if we are in "Game Mode"
+  const isGameMode = view === 'color-match-game';
+
   if (view === 'login') {
     return <Login onLoginSuccess={(userData) => { setUser(userData); setView('dashboard'); }} />;
   }
 
-  // 2. Main App Layout
   return (
-    <div className="app-container">
-      <Sidebar 
-        user={user} 
-        view={view} 
-        setView={setView} 
-        onLogout={() => setShowLogoutModal(true)} 
-      />
+    // 2. Add a specific class if in Game Mode to fix layout width
+    <div className={`app-container ${isGameMode ? 'game-mode' : ''}`}>
       
-      {/* Route Logic - Each page fetches its own data now! */}
+      {/* 3. CONDITIONAL SIDEBAR: Only show if NOT in game mode */}
+      {!isGameMode && (
+        <Sidebar 
+          user={user} 
+          view={view} 
+          setView={setView} 
+          onLogout={() => setShowLogoutModal(true)} 
+        />
+      )}
       
+      {/* --- VIEWS --- */}
+
+      {/* Main Dashboard */}
       {view === 'dashboard' && <Dashboard user={user} />}
       
+      {/* Students List */}
       {view === 'students' && (
         <Students 
           setView={setView} 
           setCurrentLearner={setCurrentLearner} 
         />
       )}
-      
-      {view === 'session' && (
-        <Session 
-          learner={currentLearner} 
-          onBack={() => setView('students')} 
+
+      {/* Student Profile Dashboard */}
+      {view === 'student-dashboard' && currentLearner && (
+        <StudentDashboard 
+            learner={currentLearner}
+            onBack={() => setView('students')}
+            onStartSession={() => setView('activity-selection')}
         />
-      )}
-      
-      {view === 'device' && (
-        <DvcManagement 
-          onBack={() => setView('dashboard')} 
-        />
-      )}
-      {view === 'session' && (
-      <ColorMatchGame 
-        learner={currentLearner} 
-        onBack={() => setView('students')} 
-      />
       )}
 
-      {/* Logout Modal */}
-      {showLogoutModal && (
-        <LogoutModal 
-          onConfirm={() => { setUser(null); setView('login'); setShowLogoutModal(false); }} 
-          onCancel={() => setShowLogoutModal(false)} 
+      {/* Activity Selection */}
+      {view === 'activity-selection' && (
+        <ActivitySelection 
+            onBack={() => setView('student-dashboard')}
+            onSelectActivity={(activity) => {
+                setView('color-match-game');
+            }}
         />
       )}
+      
+      {/* THE GAME (Now Full Screen) */}
+      {view === 'color-match-game' && (
+        <ColorMatchGame 
+          learner={currentLearner} 
+          onBack={() => setView('student-dashboard')} 
+        />
+      )}
+      
+      {/* Device Tools */}
+      {view === 'device' && <DvcManagement />} 
+      
+      {/* Modal */}
+      {showLogoutModal && <LogoutModal onConfirm={() => { setUser(null); setView('login'); setShowLogoutModal(false); }} onCancel={() => setShowLogoutModal(false)} />}
     </div>
   );
 }
