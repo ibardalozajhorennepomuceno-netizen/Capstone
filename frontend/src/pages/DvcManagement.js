@@ -21,13 +21,23 @@ const DvcManagement = () => {
 
     socket.on('disconnect', () => setStatus('Disconnected'));
 
-    // 2. Listen for 'fsr_update' (The Hardware Signal)
+    // 2. Listen for 'fsr_update' (This matches your backend route)
     socket.on('fsr_update', (data) => {
       console.log("Hardware Signal:", data);
-      setCurrentData(data);
+      
+      // Normalize data to ensure we catch 'pad' (new) or 'fsr' (old)
+      const cleanData = {
+        pad: data.pad || data.fsr || "UNKNOWN",
+        force: data.force || data.pressure || 0,
+        duration: data.duration,
+        count: data.count
+      };
+
+      setCurrentData(cleanData);
+      
       // Keep last 5 signals for the log
       setHistory(prev => [
-        { time: new Date().toLocaleTimeString(), ...data }, 
+        { time: new Date().toLocaleTimeString(), ...cleanData }, 
         ...prev
       ].slice(0, 5));
     });
@@ -73,10 +83,16 @@ const DvcManagement = () => {
            <h3 style={{margin: 0, marginBottom: '5px'}}>Live Sensor Input</h3>
            {currentData ? (
              <div>
-               <span style={{fontSize: '24px', fontWeight: 'bold', color: '#2C3E50'}}>{currentData.fsr}</span>
+               {/* UPDATED: Uses 'pad' instead of 'fsr' */}
+               <span style={{fontSize: '24px', fontWeight: 'bold', color: '#2C3E50'}}>
+                 {currentData.pad}
+               </span>
                <span style={{marginLeft: '10px', padding: '2px 8px', borderRadius: '10px', background: '#eee', fontSize: '12px'}}>
                  Duration: {currentData.duration}s
                </span>
+               <div style={{fontSize: '14px', color: '#666', marginTop: '5px'}}>
+                 Force Applied: {currentData.force}%
+               </div>
              </div>
            ) : (
              <div style={{color: '#ccc', fontStyle: 'italic'}}>Waiting for input...</div>
@@ -91,7 +107,8 @@ const DvcManagement = () => {
           <thead>
             <tr>
               <th>Timestamp</th>
-              <th>Sensor ID / Color</th>
+              <th>Sensor ID (Pad)</th>
+              <th>Force</th>
               <th>Duration</th>
               <th>Count</th>
             </tr>
@@ -101,9 +118,14 @@ const DvcManagement = () => {
               history.map((h, i) => (
                 <tr key={i}>
                   <td>{h.time}</td>
-                  <td style={{fontWeight: 'bold', color: h.fsr === 'RED' ? '#E74C3C' : h.fsr === 'GREEN' ? '#2ECC71' : '#3498DB'}}>
-                    {h.fsr}
+                  {/* UPDATED: Color logic now checks h.pad */}
+                  <td style={{
+                      fontWeight: 'bold', 
+                      color: h.pad === 'RED' ? '#E74C3C' : h.pad === 'GREEN' ? '#2ECC71' : '#3498DB'
+                  }}>
+                    {h.pad}
                   </td>
+                  <td>{h.force}%</td>
                   <td>{h.duration}s</td>
                   <td>{h.count}</td>
                 </tr>

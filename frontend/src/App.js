@@ -3,11 +3,12 @@ import './App.css';
 
 // Import Modular Components
 import Sidebar from './components/Sidebar';
-import Login from './pages/Login';
+import Login from './pages/Login.js';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
 import Session from './pages/Session'; 
 import DvcManagement from './pages/DvcManagement';
+import ColorMatchGame from './pages/ColorMatchGame.js'; 
 
 // Helper for Logout Modal
 const LogoutModal = ({ onConfirm, onCancel }) => (
@@ -65,6 +66,12 @@ function App() {
         <DvcManagement 
           onBack={() => setView('dashboard')} 
         />
+      )}
+      {view === 'session' && (
+      <ColorMatchGame 
+        learner={currentLearner} 
+        onBack={() => setView('students')} 
+      />
       )}
 
       {/* Logout Modal */}

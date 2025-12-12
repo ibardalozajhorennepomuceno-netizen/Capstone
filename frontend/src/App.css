@@ -112,23 +112,6 @@ body {
 
 .login-btn:hover { background-color: #1a252f; }
 
-.google-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: var(--white);
-  color: var(--darkGray);
-  border: none;
-  border-radius: 20px; /* Pill shape */
-  font-weight: bold;
-  margin-top: 15px;
-  cursor: not-allowed;
-  opacity: 0.8;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
 /* --- MAIN LAYOUT (Sidebar + Content) --- */
 .app-container {
   display: flex;
@@ -143,6 +126,8 @@ body {
   display: flex;
   flex-direction: column;
   padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
 }
 
 .logo-area {
