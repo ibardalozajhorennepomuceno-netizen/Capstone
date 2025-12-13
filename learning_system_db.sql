@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 06, 2025 at 02:10 PM
+-- Generation Time: Dec 13, 2025 at 07:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -62,8 +62,9 @@ INSERT INTO `activities` (`id`, `name`, `description`, `activity_type`, `difficu
 CREATE TABLE `engagement_logs` (
   `id` int(11) NOT NULL,
   `learner_id` int(11) DEFAULT NULL,
+  `therapist_id` int(11) DEFAULT NULL,
   `activity_id` int(11) NOT NULL,
-  `engagement_level` decimal(5,2) DEFAULT NULL,
+  `engagement_level` varchar(50) DEFAULT NULL,
   `duration_completed` int(11) DEFAULT NULL,
   `performance_score` decimal(5,2) DEFAULT NULL,
   `feedback_sentiment` varchar(50) DEFAULT NULL,
@@ -74,10 +75,10 @@ CREATE TABLE `engagement_logs` (
 -- Dumping data for table `engagement_logs`
 --
 
-INSERT INTO `engagement_logs` (`id`, `learner_id`, `activity_id`, `engagement_level`, `duration_completed`, `performance_score`, `feedback_sentiment`, `completed_at`) VALUES
-(11, 3, 1, NULL, NULL, 20.00, NULL, '2025-11-29 20:47:06'),
-(12, 4, 1, NULL, NULL, 30.00, NULL, '2025-11-29 20:49:16'),
-(13, 3, 1, NULL, NULL, 30.00, NULL, '2025-11-29 20:49:29');
+INSERT INTO `engagement_logs` (`id`, `learner_id`, `therapist_id`, `activity_id`, `engagement_level`, `duration_completed`, `performance_score`, `feedback_sentiment`, `completed_at`) VALUES
+(30, 3, NULL, 1, 'High', 17, 100.00, NULL, '2025-12-12 07:33:55'),
+(31, 3, NULL, 1, 'Medium', 51, 147.00, NULL, '2025-12-12 08:16:49'),
+(32, 4, NULL, 1, 'Medium', 96, 212.00, NULL, '2025-12-12 08:22:11');
 
 -- --------------------------------------------------------
 
@@ -87,25 +88,34 @@ INSERT INTO `engagement_logs` (`id`, `learner_id`, `activity_id`, `engagement_le
 
 CREATE TABLE `learners` (
   `id` int(11) NOT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `middle_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
   `full_name` varchar(100) NOT NULL,
   `gender` enum('male','female') NOT NULL,
   `age` int(11) DEFAULT NULL,
+  `birth_date` date DEFAULT NULL,
   `diagnosis` varchar(200) DEFAULT NULL,
   `learning_style` enum('visual','auditory','tactile') DEFAULT 'visual',
   `progress_score` decimal(5,2) DEFAULT 0.00,
   `engagement_score` decimal(5,2) DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `guardian_name` varchar(100) DEFAULT NULL,
+  `guardian_email` varchar(100) DEFAULT NULL,
+  `guardian_contact` varchar(20) DEFAULT NULL,
+  `guardian_relation` varchar(50) DEFAULT NULL,
+  `address` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `learners`
 --
 
-INSERT INTO `learners` (`id`, `user_id`, `full_name`, `gender`, `age`, `diagnosis`, `learning_style`, `progress_score`, `engagement_score`, `created_at`, `updated_at`) VALUES
-(3, NULL, 'Johnny Test', 'male', 7, 'Autism Spectrum Disorder', 'visual', 0.00, 0.00, '2025-11-29 20:45:48', '2025-11-29 20:45:48'),
-(4, NULL, 'Sarah Sample', 'female', 6, 'ADHD', 'auditory', 0.00, 0.00, '2025-11-29 20:45:48', '2025-11-29 21:28:13');
+INSERT INTO `learners` (`id`, `first_name`, `middle_name`, `last_name`, `user_id`, `full_name`, `gender`, `age`, `birth_date`, `diagnosis`, `learning_style`, `progress_score`, `engagement_score`, `created_at`, `updated_at`, `guardian_name`, `guardian_email`, `guardian_contact`, `guardian_relation`, `address`) VALUES
+(3, 'Roden', 'Radoc', 'Belgera', NULL, 'Roden R. Belgera', 'male', 9, '2016-01-19', 'ADHD', 'visual', 0.00, 0.00, '2025-11-29 20:45:48', '2025-12-13 06:00:47', 'Maria Santos', 'maria.santos@gmail.com', '0912-345-6789', 'Mother', '23 Mabini St., Quezon City'),
+(4, 'Sarah', '', 'Sample', NULL, 'Sarah Sample', 'female', 6, '2019-05-10', 'ASD', 'auditory', 0.00, 0.00, '2025-11-29 20:45:48', '2025-12-13 05:00:26', 'John Sample', 'john.sample@gmail.com', '0999-888-7777', 'Father', 'Block 5 Lot 2, Pasig City');
 
 -- --------------------------------------------------------
 
@@ -130,19 +140,20 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `username` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
+  `password_hash` varchar(255) DEFAULT NULL,
   `role` enum('patient','therapist','admin') NOT NULL DEFAULT 'patient',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_first_login` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at`) VALUES
-(1, 'therapist1', 'therapist1@sensorypalette.com', 'therapist1', 'therapist', '2025-11-11 14:00:23', '2025-11-22 04:35:27'),
-(2, 'admin1', 'admin1@sensorypalette.com', 'admin1', 'admin', '2025-11-11 14:00:23', '2025-11-22 04:35:27');
+INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at`, `is_first_login`) VALUES
+(1, 'therapist1', 'therapist1@sensorypalette.com', 'temp1234', 'therapist', '2025-11-11 14:00:23', '2025-12-13 06:03:08', 1),
+(2, 'admin1', 'admin1@sensorypalette.com', 'admin1', 'admin', '2025-11-11 14:00:23', '2025-11-22 04:35:27', 1);
 
 --
 -- Indexes for dumped tables
@@ -160,7 +171,8 @@ ALTER TABLE `activities`
 ALTER TABLE `engagement_logs`
   ADD PRIMARY KEY (`id`),
   ADD KEY `patient_id` (`learner_id`),
-  ADD KEY `activity_id` (`activity_id`);
+  ADD KEY `activity_id` (`activity_id`),
+  ADD KEY `fk_therapist_log` (`therapist_id`);
 
 --
 -- Indexes for table `learners`
@@ -199,7 +211,7 @@ ALTER TABLE `activities`
 -- AUTO_INCREMENT for table `engagement_logs`
 --
 ALTER TABLE `engagement_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `learners`
@@ -228,7 +240,8 @@ ALTER TABLE `users`
 --
 ALTER TABLE `engagement_logs`
   ADD CONSTRAINT `engagement_logs_ibfk_1` FOREIGN KEY (`learner_id`) REFERENCES `learners` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `engagement_logs_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `engagement_logs_ibfk_2` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_therapist_log` FOREIGN KEY (`therapist_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `learners`
@@ -247,3 +260,4 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- Dump completed on 2025-12-13 07:03:09

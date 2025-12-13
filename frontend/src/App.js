@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 // Import Modular Components
@@ -34,6 +34,41 @@ function App() {
   // 1. Detect if we are in "Game Mode"
   const isGameMode = view === 'color-match-game';
 
+  // --- SESSION TIMEOUT LOGIC ---
+  const checkForInactivity = useCallback(() => {
+      const expireTime = localStorage.getItem('expireTime');
+      if (expireTime && Date.now() > expireTime) {
+          // Time is up!
+          setUser(null); 
+          setView('login');
+          localStorage.removeItem('expireTime');
+          alert("Session timed out due to inactivity.");
+      }
+  }, []);
+
+  const updateExpireTime = () => {
+      // Set expire time to 15 minutes from now
+      const expireTime = Date.now() + 900000; // 15 mins * 60 * 1000
+      localStorage.setItem('expireTime', expireTime);
+  };
+
+  useEffect(() => {
+      // Add listeners for mouse move or key press
+      window.addEventListener('click', updateExpireTime);
+      window.addEventListener('keypress', updateExpireTime);
+      window.addEventListener('mousemove', updateExpireTime);
+      
+      // Check every 5 seconds if time is up
+      const interval = setInterval(checkForInactivity, 5000);
+
+      return () => {
+          window.removeEventListener('click', updateExpireTime);
+          window.removeEventListener('keypress', updateExpireTime);
+          window.removeEventListener('mousemove', updateExpireTime);
+          clearInterval(interval);
+      };
+  }, [checkForInactivity]);
+  
   if (view === 'login') {
     return <Login onLoginSuccess={(userData) => { setUser(userData); setView('dashboard'); }} />;
   }
@@ -69,6 +104,7 @@ function App() {
       {view === 'student-dashboard' && currentLearner && (
         <StudentDashboard 
             learner={currentLearner}
+            user={user}
             onBack={() => setView('students')}
             onStartSession={() => setView('activity-selection')}
         />

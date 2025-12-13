@@ -9,7 +9,7 @@ const FAIL_SOUND = new Audio('/fail.mp3');
 const LEVEL_UP_SOUND = new Audio('/levelup.mp3');
 const WRONG_SOUND = new Audio('/wrong.mp3');
 
-const ColorMatchGame = ({ learner, onBack }) => {
+const ColorMatchGame = ({ learner, therapist, onBack }) => {
   // --- STATE ---
   // Added 'FULLSCREEN_PROMPT' to the flow
   const [gameState, setGameState] = useState('IDLE'); 
@@ -102,6 +102,7 @@ const ColorMatchGame = ({ learner, onBack }) => {
 
     const sessionData = {
         learner_id: learner.id,
+        therapist_id: therapist.id,
         activity_id: 1, 
         performance_score: score,
         duration: totalSeconds,

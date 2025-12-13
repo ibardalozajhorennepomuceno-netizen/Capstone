@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import API_BASE_URL from '../config'; // Auto-imports your IP
+import API_BASE_URL from '../config';
 
 const Dashboard = ({ user }) => {
-  // 1. Initialize as an EMPTY ARRAY [] (Crucial!)
   const [learners, setLearners] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Helper to Capitalize Role (e.g. "admin" -> "Admin")
+  const formatRole = (role) => {
+    if (!role) return "Therapist";
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
   useEffect(() => {
-    // 2. Fetch data from the new modular API URL
     axios.get(`${API_BASE_URL}/learners`)
       .then(res => {
-        console.log("Dashboard Data:", res.data); // Debugging
-        // Ensure we are setting an array, even if backend sends nothing
         setLearners(Array.isArray(res.data) ? res.data : []);
         setLoading(false);
       })
@@ -31,23 +33,32 @@ const Dashboard = ({ user }) => {
     <div className="main-content">
       <div className="page-header">
         <h1 className="page-title">Therapist Dashboard</h1>
-        <p style={{color:'gray'}}>Welcome back, {user ? user.name : 'Therapist'}</p>
+        
+        {/* FIXED WELCOME MESSAGE */}
+        {/* Shows "Welcome back, Roden!" or "Welcome back, Admin!" if no name */}
+        <p style={{color:'gray'}}>
+            Welcome back, {user?.username || formatRole(user?.role)}!
+        </p>
       </div>
       
       <div style={{background: 'var(--bg)'}}>
         <h3>Recent Learners</h3>
         <table className="custom-table">
           <thead>
-            <tr><th>ID</th><th>Full Name</th><th>Gender</th><th>Diagnosis</th></tr>
+            {/* Updated headers to match new DB schema */}
+            <tr><th>ID</th><th>Name</th><th>Gender</th><th>Diagnosis</th></tr>
           </thead>
           <tbody>
-            {/* 3. The Safety Check: learners?.length */}
             {learners && learners.length > 0 ? (
               learners.map(l => (
                 <tr key={l.id}>
-                  <td>STU-00{l.id}</td>
-                  <td>{l.full_name}</td>
-                  <td>{l.gender}</td>
+                  <td>STU-{l.id.toString().padStart(3, '0')}</td>
+                  
+                  {/* UPDATED: Uses first_name + last_name since we split them */}
+                  {/* Fallback to full_name if the new columns are empty */}
+                  <td>{l.first_name ? `${l.first_name} ${l.last_name}` : l.full_name}</td>
+                  
+                  <td style={{textTransform:'capitalize'}}>{l.gender}</td>
                   <td>
                     <span style={{
                       backgroundColor: l.diagnosis && l.diagnosis.includes('ASD') ? '#e3f2fd' : '#fce4ec',
@@ -60,7 +71,7 @@ const Dashboard = ({ user }) => {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="4">No students found.</td></tr>
+              <tr><td colSpan="4" style={{textAlign:'center', padding:'20px'}}>No students found.</td></tr>
             )}
           </tbody>
         </table>
