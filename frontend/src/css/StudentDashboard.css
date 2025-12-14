@@ -71,6 +71,10 @@
     transform: translateY(-2px);
 }
 
+.start-session-btn:active {
+    background-color: #F98915;
+}
+
 .tabs-container {
     display: flex;
     gap: 20px;
@@ -91,9 +95,9 @@
 }
 
 .tab-btn.active {
-    background-color: white;
+    background-color: transparent;
     color: #2C3E50;
-    border: 2px solid #3498DB;
+    border: 10px solid white;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 

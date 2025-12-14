@@ -1,12 +1,12 @@
 import React from 'react';
-import { FaGamepad, FaMusic, FaHandPaper } from 'react-icons/fa';
+import { FaGamepad, FaMusic, FaHandPaper, FaArrowLeft } from 'react-icons/fa';
 
 const ActivitySelection = ({ onSelectActivity, onBack }) => {
   return (
     <div className="main-content" style={{textAlign:'center'}}>
       <div className="page-header" style={{display:'flex', justifyContent:'space-between'}}>
         <h1 className="page-title">Select Activity</h1>
-        <button className="action-btn" onClick={onBack} style={{background:'#6c757d'}}>Back to Profile</button>
+        <button className="action-btn" onClick={onBack} style={{background:'transparent'}}><FaArrowLeft /> Back to Profile</button>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(250px, 1fr))', gap:'30px', marginTop:'50px'}}>

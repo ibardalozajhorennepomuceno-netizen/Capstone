@@ -1,18 +1,54 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; 
 import API_BASE_URL from '../config';
-// Ensure your CSS file with .login-wrapper, .login-card, etc. is imported in App.js or here
+
+// --- FIXED: COMPONENT DEFINED OUTSIDE ---
+const PasswordInput = ({ value, onChange, onKeyDown, placeholder, show, setShow }) => (
+    <div style={{position: 'relative', width: '100%'}}>
+        <input 
+            type={show ? "text" : "password"} 
+            className="custom-input" 
+            placeholder={placeholder} 
+            value={value}
+            onChange={onChange}
+            onKeyDown={onKeyDown} 
+            style={{ paddingRight: '40px' }} 
+        />
+        <span 
+            onClick={() => setShow(!show)}
+            style={{
+                position: 'absolute',
+                right: '15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                cursor: 'pointer',
+                color: '#95A5A6',
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center'
+            }}
+        >
+            {show ? <FaEyeSlash /> : <FaEye />}
+        </span>
+    </div>
+);
 
 const Login = ({ onLoginSuccess }) => {
-  // --- STATE ---
+  // State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  // New State for Change Password Flow
+  // Change Password State
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isForceChange, setIsForceChange] = useState(false); 
   const [tempUserId, setTempUserId] = useState(null); 
+
+  // Visibility Toggles
+  const [showLoginPass, setShowLoginPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   // UI State
   const [error, setError] = useState('');
@@ -24,11 +60,9 @@ const Login = ({ onLoginSuccess }) => {
       const res = await axios.post(`${API_BASE_URL}/login`, { username, password });
       
       if (res.data.status === 'Success') {
-          // PASS USER & TOKEN UP TO APP.JS
           onLoginSuccess(res.data.user, res.data.token);
       } 
       else if (res.data.status === 'FORCE_CHANGE_PASSWORD') {
-          // TRIGGER FORCE CHANGE UI
           setIsForceChange(true);
           setTempUserId(res.data.user_id);
           setError(""); 
@@ -44,7 +78,6 @@ const Login = ({ onLoginSuccess }) => {
   // --- LOGIC 2: CHANGE PASSWORD ---
   const handleChangePassword = async (e) => {
       if(e) e.preventDefault();
-      
       if (newPassword !== confirmPassword) return setError("Passwords do not match!");
       if (newPassword.length < 8) return setError("Password must be at least 8 characters.");
 
@@ -56,7 +89,7 @@ const Login = ({ onLoginSuccess }) => {
 
           if (res.data.success) {
               alert("Success! Please login with your new password.");
-              setIsForceChange(false); // Reset to Login View
+              setIsForceChange(false); 
               setPassword(''); 
               setNewPassword(''); 
               setConfirmPassword('');
@@ -71,16 +104,14 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-       isForceChange ? handleChangePassword() : handleLogin();
+       isForceChange ? handleChangePassword(e) : handleLogin(e);
     }
   };
 
-  // --- RENDER (USING ORIGINAL CSS CLASSES) ---
   return (
     <div className="login-wrapper">
       <div className="login-card">
         
-        {/* HEADER */}
         <p className="login-title">
             {isForceChange ? "Setup Account" : "Welcome Back!"}
         </p>
@@ -88,29 +119,28 @@ const Login = ({ onLoginSuccess }) => {
             {isForceChange ? "First-time login? Please set a new password." : "Please enter your details..."}
         </p>
         
-        {/* VIEW 1: CHANGE PASSWORD */}
         {isForceChange ? (
              <>
                 <div className="input-group">
                     <label>New Password</label>
-                    <input 
-                        type="password"
-                        className="custom-input" 
-                        placeholder="Min 8 characters"
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
+                    <PasswordInput 
+                        value={newPassword} 
+                        onChange={e => setNewPassword(e.target.value)} 
                         onKeyDown={handleKeyDown}
+                        placeholder="Min 8 characters"
+                        show={showNewPass}
+                        setShow={setShowNewPass}
                     />
                 </div>
                 <div className="input-group">
                     <label>Confirm Password</label>
-                    <input 
-                        type="password"
-                        className="custom-input" 
-                        placeholder="Retype password"
-                        value={confirmPassword}
-                        onChange={e => setConfirmPassword(e.target.value)}
+                    <PasswordInput 
+                        value={confirmPassword} 
+                        onChange={e => setConfirmPassword(e.target.value)} 
                         onKeyDown={handleKeyDown}
+                        placeholder="Retype password"
+                        show={showConfirmPass}
+                        setShow={setShowConfirmPass}
                     />
                 </div>
                 
@@ -121,7 +151,6 @@ const Login = ({ onLoginSuccess }) => {
                 </button>
              </>
         ) : (
-            /* VIEW 2: ORIGINAL LOGIN */
             <>
                 <div className="input-group">
                     <label>Username</label>
@@ -136,13 +165,13 @@ const Login = ({ onLoginSuccess }) => {
                 
                 <div className="input-group">
                     <label>Password</label>
-                    <input 
-                        type="password" 
-                        className="custom-input" 
-                        placeholder="Enter password" 
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        onKeyDown={handleKeyDown} 
+                    <PasswordInput 
+                        value={password} 
+                        onChange={e => setPassword(e.target.value)} 
+                        onKeyDown={handleKeyDown}
+                        placeholder="Enter password"
+                        show={showLoginPass}
+                        setShow={setShowLoginPass}
                     />
                 </div>
 
@@ -153,7 +182,6 @@ const Login = ({ onLoginSuccess }) => {
                 <button className="login-btn" onClick={handleLogin}>Login</button>
             </>
         )}
-
       </div>
     </div>
   );

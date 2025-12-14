@@ -9,6 +9,9 @@ const Sidebar = ({ user, view, setView, onLogout }) => {
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
+  // CHECK IF ADMIN
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="sidebar">
       {/* LOGO AREA - Kept exactly as your current code */}
@@ -23,7 +26,6 @@ const Sidebar = ({ user, view, setView, onLogout }) => {
       {/* USER PROFILE - Updated to use real data */}
       <div className="user-profile-widget">
         <div className="avatar-circle"><FaUserCircle /></div>
-        {/* Use user.username instead of user.name */}
         <h3>{user?.username || 'Guest'}</h3>
         <span style={{opacity:0.7, fontSize:'14px'}}>
             {formatRole(user?.role)}
@@ -35,9 +37,12 @@ const Sidebar = ({ user, view, setView, onLogout }) => {
         <FaChartPie className="nav-icon"/> Dashboard
       </div>
       
-      <div className={`nav-item ${view === 'students' ? 'active' : ''}`} onClick={() => setView('students')}>
-        <FaUsers className="nav-icon"/> Students
-      </div>
+      {/* 2. STUDENTS (HIDDEN FOR ADMIN) */}
+      {!isAdmin && (
+        <div className={`nav-item ${view === 'students' ? 'active' : ''}`} onClick={() => setView('students')}>
+            <FaUsers className="nav-icon"/> Students
+        </div>
+      )}
 
       {/* Device Management Button */}
       <div className={`nav-item ${view === 'device' ? 'active' : ''}`} onClick={() => setView('device')}>

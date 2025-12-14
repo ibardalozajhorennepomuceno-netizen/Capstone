@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 13, 2025 at 07:03 AM
+-- Generation Time: Dec 14, 2025 at 11:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -78,7 +78,8 @@ CREATE TABLE `engagement_logs` (
 INSERT INTO `engagement_logs` (`id`, `learner_id`, `therapist_id`, `activity_id`, `engagement_level`, `duration_completed`, `performance_score`, `feedback_sentiment`, `completed_at`) VALUES
 (30, 3, NULL, 1, 'High', 17, 100.00, NULL, '2025-12-12 07:33:55'),
 (31, 3, NULL, 1, 'Medium', 51, 147.00, NULL, '2025-12-12 08:16:49'),
-(32, 4, NULL, 1, 'Medium', 96, 212.00, NULL, '2025-12-12 08:22:11');
+(32, 4, NULL, 1, 'Medium', 96, 212.00, NULL, '2025-12-12 08:22:11'),
+(33, 4, 1, 1, 'Low', 18, 158.00, NULL, '2025-12-14 18:08:57');
 
 -- --------------------------------------------------------
 
@@ -115,7 +116,8 @@ CREATE TABLE `learners` (
 
 INSERT INTO `learners` (`id`, `first_name`, `middle_name`, `last_name`, `user_id`, `full_name`, `gender`, `age`, `birth_date`, `diagnosis`, `learning_style`, `progress_score`, `engagement_score`, `created_at`, `updated_at`, `guardian_name`, `guardian_email`, `guardian_contact`, `guardian_relation`, `address`) VALUES
 (3, 'Roden', 'Radoc', 'Belgera', NULL, 'Roden R. Belgera', 'male', 9, '2016-01-19', 'ADHD', 'visual', 0.00, 0.00, '2025-11-29 20:45:48', '2025-12-13 06:00:47', 'Maria Santos', 'maria.santos@gmail.com', '0912-345-6789', 'Mother', '23 Mabini St., Quezon City'),
-(4, 'Sarah', '', 'Sample', NULL, 'Sarah Sample', 'female', 6, '2019-05-10', 'ASD', 'auditory', 0.00, 0.00, '2025-11-29 20:45:48', '2025-12-13 05:00:26', 'John Sample', 'john.sample@gmail.com', '0999-888-7777', 'Father', 'Block 5 Lot 2, Pasig City');
+(4, 'Sarah', '', 'Sample', NULL, 'Sarah Sample', 'female', 6, '2019-05-10', 'ASD', 'auditory', 0.00, 0.00, '2025-11-29 20:45:48', '2025-12-13 05:00:26', 'John Sample', 'john.sample@gmail.com', '0999-888-7777', 'Father', 'Block 5 Lot 2, Pasig City'),
+(5, 'Johnny', '', 'Bravo', NULL, '', 'male', 8, '2017-02-14', 'ASD', 'visual', 0.00, 0.00, '2025-12-14 21:27:06', '2025-12-14 21:53:53', 'Bunny Bravo', 'bunnybravo@gmail.com', '09091678911', 'Mother', '23 Maple St., Greenhills Subd., Brgy. San Juan, Mandaluyong City 1550, Metro Manila');
 
 -- --------------------------------------------------------
 
@@ -152,8 +154,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `password_hash`, `role`, `created_at`, `updated_at`, `is_first_login`) VALUES
-(1, 'therapist1', 'therapist1@sensorypalette.com', 'temp1234', 'therapist', '2025-11-11 14:00:23', '2025-12-13 06:03:08', 1),
-(2, 'admin1', 'admin1@sensorypalette.com', 'admin1', 'admin', '2025-11-11 14:00:23', '2025-11-22 04:35:27', 1);
+(1, 'therapist1', 'therapist1@sensorypalette.com', '$2b$10$O05naaWggpyUsygKHkpGXuwuctK9hY5CfWXOdyOyWZBoSBxNWpPzK', 'therapist', '2025-11-11 14:00:23', '2025-12-14 15:36:47', 0),
+(2, 'admin1', 'admin1@sensorypalette.com', '$2b$10$tBnj4xlWVrEP2sDgJYyUH.ifDCgtBHQN6l9ctO6EQ8XnK0uWYhLXy', 'admin', '2025-11-11 14:00:23', '2025-12-14 15:39:06', 0),
+(5, 'therapist2', '', '$2b$10$8ceQD6x/0P0eBdE3dmvHFuQgmPA5I1oHSkDChw5cygHGrRDlMYYEK', 'therapist', '2025-12-14 18:25:56', '2025-12-14 18:25:56', 1);
 
 --
 -- Indexes for dumped tables
@@ -211,13 +214,13 @@ ALTER TABLE `activities`
 -- AUTO_INCREMENT for table `engagement_logs`
 --
 ALTER TABLE `engagement_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `learners`
 --
 ALTER TABLE `learners`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `therapist_assignments`
@@ -229,7 +232,7 @@ ALTER TABLE `therapist_assignments`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
@@ -259,5 +262,7 @@ COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
--- Dump completed on 2025-12-13 07:03:09
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */; 
+
+
+-- Dump completed on 2025-12-14 23:32:11
